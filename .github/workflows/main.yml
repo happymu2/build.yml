@@ -1,0 +1,40 @@
+name: Build palen1x
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Build for amd64
+        run: |
+          sed -i "/Exit if user isn't root/aVERSION='$(cat version)'" build.sh
+          sed -i "/Exit if user isn't root/aARCH='amd64'" build.sh
+          sudo -E ./build.sh RELEASE
+
+      - name: Build for i686
+        run: |
+          sed -i "s/ARCH='amd64'/ARCH='i686'/g" build.sh
+          sudo -E ./build.sh RELEASE
+
+          
+      - name: Prepare artifact
+        run: |
+          mkdir -p palen1x
+          for i in *.iso; do mv $i palen1x; done
+
+      - name: Upload artifact to cdn.nickchan.lol
+        uses: wangyucode/sftp-upload-action@v1.4.8
+        with:
+          host: ${{ secrets.NICKCHAN_FTP_HOST }}
+          port: ${{ secrets.NICKCHAN_FTP_PORT }}
+          username: palera1n
+          password: ${{ secrets.NICKCHAN_FTP_PASS }}
+          forceUpload: true
+          dryRun: false
+          localDir: 'palen1x/'
+          remoteDir: '/palera1n/artifacts/palen1x/release'
